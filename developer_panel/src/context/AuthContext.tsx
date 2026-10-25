@@ -4,48 +4,88 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 export type UserRole = 'developer' | 'super_admin' | 'client_admin' | 'seller' | 'customer';
 
-interface AuthUser {
+export interface AuthUser {
   uid: string;
   email: string;
   displayName: string;
   role: UserRole;
-  tenantId?: string;
+  tenantId: string;
+  sellerId?: string;
 }
+
+export const PRESET_PERSONAS: Record<string, AuthUser> = {
+  developer: {
+    uid: 'dev_sarah_01',
+    email: 'sarah.architect@poultryplatform.dev',
+    displayName: 'Sarah Chen (Principal Architect)',
+    role: 'developer',
+    tenantId: 'apex-poultry-hub',
+  },
+  client_admin: {
+    uid: 'admin_vikram_01',
+    email: 'vikram.admin@apex-poultry.in',
+    displayName: 'Vikramaditya Rao (Hub Admin)',
+    role: 'client_admin',
+    tenantId: 'apex-poultry-hub',
+  },
+  seller: {
+    uid: 'seller_krishna_01',
+    email: 'ramesh@krishnafarms.in',
+    displayName: 'Ramesh Krishna (Krishna Broiler Farms)',
+    role: 'seller',
+    tenantId: 'apex-poultry-hub',
+    sellerId: 'seller_krishna_01',
+  },
+  customer: {
+    uid: 'cust_anand_01',
+    email: 'anand.verma@gmail.com',
+    displayName: 'Anand Verma (Customer)',
+    role: 'customer',
+    tenantId: 'apex-poultry-hub',
+  },
+};
 
 interface AuthContextType {
   user: AuthUser | null;
   role: UserRole;
+  tenantId: string;
+  sellerId?: string;
   isPlatformDeveloper: boolean;
+  isClientAdmin: boolean;
+  isSeller: boolean;
   isLoading: boolean;
-  login: (email: string, role?: UserRole) => void;
+  login: (email: string, role?: UserRole, tenantId?: string, sellerId?: string) => void;
   logout: () => void;
   switchRole: (role: UserRole) => void;
+  switchTenant: (tenantId: string) => void;
+  switchSeller: (sellerId: string) => void;
+  switchPersona: (personaKey: keyof typeof PRESET_PERSONAS) => void;
 }
 
-const DEFAULT_DEV_USER: AuthUser = {
-  uid: 'dev_sarah_01',
-  email: 'sarah.architect@poultryplatform.dev',
-  displayName: 'Sarah Chen (Principal Architect)',
-  role: 'developer',
-};
-
 const AuthContext = createContext<AuthContextType>({
-  user: DEFAULT_DEV_USER,
+  user: PRESET_PERSONAS.developer,
   role: 'developer',
+  tenantId: 'apex-poultry-hub',
+  sellerId: 'seller_krishna_01',
   isPlatformDeveloper: true,
+  isClientAdmin: false,
+  isSeller: false,
   isLoading: false,
   login: () => {},
   logout: () => {},
   switchRole: () => {},
+  switchTenant: () => {},
+  switchSeller: () => {},
+  switchPersona: () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(DEFAULT_DEV_USER);
+  const [user, setUser] = useState<AuthUser | null>(PRESET_PERSONAS.developer);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     try {
-      const stored = localStorage.getItem('poultry_dev_auth');
+      const stored = localStorage.getItem('poultry_platform_auth');
       if (stored) {
         setUser(JSON.parse(stored));
       }
@@ -54,43 +94,89 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const login = (email: string, role: UserRole = 'developer') => {
+  const saveUser = (u: AuthUser | null) => {
+    setUser(u);
+    if (u) {
+      localStorage.setItem('poultry_platform_auth', JSON.stringify(u));
+    } else {
+      localStorage.removeItem('poultry_platform_auth');
+    }
+  };
+
+  const login = (
+    email: string,
+    role: UserRole = 'developer',
+    tenantId: string = 'apex-poultry-hub',
+    sellerId?: string
+  ) => {
     setIsLoading(true);
     const authedUser: AuthUser = {
-      uid: `dev_${Date.now()}`,
+      uid: `usr_${Date.now()}`,
       email,
       displayName: email.split('@')[0].replace('.', ' '),
       role,
+      tenantId,
+      sellerId,
     };
-    setUser(authedUser);
-    localStorage.setItem('poultry_dev_auth', JSON.stringify(authedUser));
+    saveUser(authedUser);
     setIsLoading(false);
   };
 
   const logout = () => {
-    setUser(null);
-    localStorage.removeItem('poultry_dev_auth');
+    saveUser(null);
   };
 
   const switchRole = (newRole: UserRole) => {
     if (!user) return;
-    const updated: AuthUser = { ...user, role: newRole };
-    setUser(updated);
-    localStorage.setItem('poultry_dev_auth', JSON.stringify(updated));
+    const persona = PRESET_PERSONAS[newRole];
+    if (persona) {
+      saveUser({ ...persona, tenantId: user.tenantId });
+    } else {
+      saveUser({ ...user, role: newRole });
+    }
   };
 
-  const isPlatformDeveloper = user?.role === 'developer' || user?.role === 'super_admin';
+  const switchTenant = (newTenantId: string) => {
+    if (!user) return;
+    saveUser({ ...user, tenantId: newTenantId });
+  };
+
+  const switchSeller = (newSellerId: string) => {
+    if (!user) return;
+    saveUser({ ...user, sellerId: newSellerId });
+  };
+
+  const switchPersona = (personaKey: keyof typeof PRESET_PERSONAS) => {
+    const persona = PRESET_PERSONAS[personaKey];
+    if (persona) {
+      saveUser({ ...persona });
+    }
+  };
+
+  const role = user?.role || 'customer';
+  const tenantId = user?.tenantId || 'apex-poultry-hub';
+  const sellerId = user?.sellerId || 'seller_krishna_01';
+  const isPlatformDeveloper = role === 'developer' || role === 'super_admin';
+  const isClientAdmin = isPlatformDeveloper || role === 'client_admin';
+  const isSeller = isPlatformDeveloper || isClientAdmin || role === 'seller';
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        role: user?.role || 'customer',
+        role,
+        tenantId,
+        sellerId,
         isPlatformDeveloper,
+        isClientAdmin,
+        isSeller,
         isLoading,
         login,
         logout,
         switchRole,
+        switchTenant,
+        switchSeller,
+        switchPersona,
       }}
     >
       {children}

@@ -13,8 +13,20 @@ service firebase.storage {
       );
     }
 
+    function isClientAdmin(tenantId) {
+      return isAuthenticated() && 
+             request.auth.token.tenantId == tenantId && 
+             request.auth.token.role == 'client_admin';
+    }
+
     function isTenantUser(tenantId) {
       return isAuthenticated() && request.auth.token.tenantId == tenantId;
+    }
+
+    function isSellerOwner(tenantId, sellerId) {
+      return isAuthenticated() && 
+             request.auth.token.tenantId == tenantId && 
+             (request.auth.uid == sellerId || request.auth.token.sellerId == sellerId);
     }
 
     // Platform Branding Assets: Public read, Platform Developer write
@@ -25,14 +37,33 @@ service firebase.storage {
                       request.resource.contentType.matches('image/.*');
     }
 
-    // Tenant Media Plane (Poultry photos, veterinary certificates, batch logs)
-    match /tenants/{tenantId}/{allPaths=**} {
-      allow read: if true; // Public access for product imagery
+    // Tenant Public Assets (Product photos, public poultry catalog imagery, tenant logos)
+    match /tenants/{tenantId}/public/{allPaths=**} {
+      allow read: if true;
       allow write: if isPlatformDeveloper() || 
                       (isTenantUser(tenantId) && 
                        request.resource.size < 10 * 1024 * 1024 &&
-                       (request.resource.contentType.matches('image/.*') || 
-                        request.resource.contentType == 'application/pdf'));
+                       request.resource.contentType.matches('image/.*'));
+    }
+
+    // Sensitive Seller KYC Documents (Veterinary Health Passes, Biosecurity Audits, FSSAI certificates, PAN)
+    // STRICT SECURITY: Public read is DENIED. Only the seller owner, tenant client admin, or developer can read/write.
+    match /tenants/{tenantId}/sellers/{sellerId}/documents/{docName} {
+      allow read: if isPlatformDeveloper() || 
+                     isClientAdmin(tenantId) || 
+                     isSellerOwner(tenantId, sellerId);
+      allow write: if (isPlatformDeveloper() || 
+                       isClientAdmin(tenantId) || 
+                       isSellerOwner(tenantId, sellerId)) &&
+                      request.resource.size < 15 * 1024 * 1024 &&
+                      (request.resource.contentType == 'application/pdf' || 
+                       request.resource.contentType.matches('image/.*'));
+    }
+
+    // Fallback Tenant Media Plane: Authenticated tenant access only
+    match /tenants/{tenantId}/{allPaths=**} {
+      allow read: if isPlatformDeveloper() || isTenantUser(tenantId);
+      allow write: if isPlatformDeveloper() || isClientAdmin(tenantId);
     }
   }
 }

@@ -67,8 +67,12 @@ export const tenantService = {
     return all[tenantId] || null;
   },
 
-  async getAuditLogs(): Promise<AuditEvent[]> {
-    return getStored<AuditEvent[]>(STORAGE_KEYS.AUDIT_LOGS, INITIAL_AUDIT_LOGS);
+  async getAuditLogs(tenantId?: string): Promise<AuditEvent[]> {
+    const all = getStored<AuditEvent[]>(STORAGE_KEYS.AUDIT_LOGS, INITIAL_AUDIT_LOGS);
+    if (tenantId) {
+      return all.filter((l) => !l.tenantId || l.tenantId === tenantId);
+    }
+    return all;
   },
 
   async createTenant(payload: {

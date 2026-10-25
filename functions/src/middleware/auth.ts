@@ -21,3 +21,20 @@ export function assertPlatformDeveloper(request: CallableRequest<unknown>): { ui
   }
   return { uid: user.uid, email: user.email, role: user.role };
 }
+
+export function assertClientAdminOrDeveloper(
+  request: CallableRequest<unknown>,
+  targetTenantId?: string
+): { uid: string; email: string; role: string; tenantId?: string } {
+  const user = assertAuthenticated(request);
+  if (user.role === 'developer' || user.role === 'super_admin') {
+    return { uid: user.uid, email: user.email, role: user.role, tenantId: user.tenantId };
+  }
+  if (user.role === 'client_admin') {
+    if (targetTenantId && user.tenantId !== targetTenantId) {
+      throw new HttpsError('permission-denied', 'Client admin can only manage their own tenant.');
+    }
+    return { uid: user.uid, email: user.email, role: user.role, tenantId: user.tenantId };
+  }
+  throw new HttpsError('permission-denied', 'Unauthorized. Requires client administrator or developer clearance.');
+}

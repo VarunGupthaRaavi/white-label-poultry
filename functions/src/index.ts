@@ -1,7 +1,7 @@
 import * as admin from 'firebase-admin';
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { beforeUserCreated } from 'firebase-functions/v2/identity';
-import { assertPlatformDeveloper, assertAuthenticated } from './middleware/auth';
+import { assertPlatformDeveloper, assertAuthenticated, assertClientAdminOrDeveloper } from './middleware/auth';
 import { logAuditEvent } from './services/audit';
 import {
   TenantLifecycleState,
@@ -382,3 +382,180 @@ export const onUserCreated = beforeUserCreated((event) => {
     },
   };
 });
+
+// =============================================================================
+// CALLABLE FUNCTIONS: ORDER TRANSITIONS & OPERATIONS
+// =============================================================================
+
+const ORDER_STATE_MACHINE: Record<string, string[]> = {
+  pending: ['confirmed', 'cancelled'],
+  confirmed: ['preparing', 'cancelled'],
+  preparing: ['ready_for_dispatch', 'cancelled'],
+  ready_for_dispatch: ['out_for_delivery', 'cancelled'],
+  out_for_delivery: ['delivered', 'failed_delivery'],
+  delivered: [],
+  cancelled: [],
+  failed_delivery: ['ready_for_dispatch', 'cancelled'],
+};
+
+export const transitionOrderStatus = onCall<{
+  tenantId: string;
+  orderId: string;
+  newStatus: string;
+  notes?: string;
+  cancellationReason?: string;
+}>(async (request) => {
+  const actor = assertAuthenticated(request);
+  const { tenantId, orderId, newStatus, notes, cancellationReason } = request.data;
+
+  const orderRef = db.doc(`tenants/${tenantId}/orders/${orderId}`);
+  const orderDoc = await orderRef.get();
+  if (!orderDoc.exists) {
+    throw new HttpsError('not-found', `Order ${orderId} not found.`);
+  }
+
+  const orderData = orderDoc.data()!;
+  const currentStatus = orderData.orderStatus || 'pending';
+
+  // 1. Validate state transition graph
+  const allowedNext = ORDER_STATE_MACHINE[currentStatus] || [];
+  if (!allowedNext.includes(newStatus)) {
+    throw new HttpsError(
+      'failed-precondition',
+      `Illegal order transition: Cannot transition from [${currentStatus}] to [${newStatus}].`
+    );
+  }
+
+  // 2. Validate actor authorization
+  const isDev = actor.role === 'developer' || actor.role === 'super_admin';
+  const isAdmin = actor.role === 'client_admin' && actor.tenantId === tenantId;
+  const isSeller = actor.role === 'seller' && actor.tenantId === tenantId && orderData.sellerId === actor.uid;
+  const isCustomer = actor.role === 'customer' && orderData.customerId === actor.uid;
+
+  if (isSeller) {
+    // Sellers can ONLY move order through farm packaging
+    if (newStatus !== 'preparing' && newStatus !== 'ready_for_dispatch') {
+      throw new HttpsError('permission-denied', 'Sellers are restricted to preparing and ready_for_dispatch transitions.');
+    }
+  } else if (isCustomer) {
+    // Customers can ONLY cancel an order while pending
+    if (newStatus !== 'cancelled' || currentStatus !== 'pending') {
+      throw new HttpsError('permission-denied', 'Customers can only cancel unconfirmed pending orders.');
+    }
+  } else if (!isDev && !isAdmin) {
+    throw new HttpsError('permission-denied', 'Unauthorized to transition order status.');
+  }
+
+  const nowIso = new Date().toISOString();
+  const transitionEvent = {
+    status: newStatus,
+    timestamp: nowIso,
+    actorId: actor.uid,
+    actorRole: actor.role,
+    actorName: actor.email,
+    notes: notes || `Order transitioned to ${newStatus}`,
+  };
+
+  const updatePayload: Record<string, any> = {
+    orderStatus: newStatus,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    history: admin.firestore.FieldValue.arrayUnion(transitionEvent),
+  };
+
+  if (newStatus === 'cancelled') {
+    updatePayload.cancellationReason = cancellationReason || notes || 'Order cancelled';
+  }
+
+  await orderRef.update(updatePayload);
+
+  await logAuditEvent(db, {
+    actorUid: actor.uid,
+    actorEmail: actor.email,
+    actorRole: actor.role || 'customer',
+    tenantId,
+    action: 'ORDER_TRANSITIONED',
+    outcome: 'SUCCESS',
+    details: { orderId, previousStatus: currentStatus, newStatus, notes },
+  });
+
+  return { success: true, orderId, previousStatus: currentStatus, newStatus };
+});
+
+export const reviewSellerApplication = onCall<{
+  tenantId: string;
+  sellerId: string;
+  status: 'approved' | 'rejected' | 'suspended';
+  commissionRatePercent?: number;
+  rejectionReason?: string;
+}>(async (request) => {
+  const actor = assertClientAdminOrDeveloper(request, request.data.tenantId);
+  const { tenantId, sellerId, status, commissionRatePercent, rejectionReason } = request.data;
+
+  const sellerRef = db.doc(`tenants/${tenantId}/sellers/${sellerId}`);
+  const sellerDoc = await sellerRef.get();
+  if (!sellerDoc.exists) {
+    throw new HttpsError('not-found', `Seller ${sellerId} not found.`);
+  }
+
+  const updatePayload: Record<string, any> = {
+    status,
+    reviewedAt: new Date().toISOString(),
+    reviewedBy: actor.email,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  };
+
+  if (commissionRatePercent !== undefined) {
+    updatePayload.commissionRatePercent = commissionRatePercent;
+  }
+  if (rejectionReason) {
+    updatePayload.rejectionReason = rejectionReason;
+  }
+
+  await sellerRef.update(updatePayload);
+
+  await logAuditEvent(db, {
+    actorUid: actor.uid,
+    actorEmail: actor.email,
+    actorRole: actor.role,
+    tenantId,
+    action: 'SELLER_REVIEWED',
+    outcome: 'SUCCESS',
+    details: { sellerId, status, commissionRatePercent, rejectionReason },
+  });
+
+  return { success: true, sellerId, status };
+});
+
+export const requestModuleEntitlement = onCall<{
+  tenantId: string;
+  moduleKey: string;
+  notes?: string;
+}>(async (request) => {
+  const actor = assertClientAdminOrDeveloper(request, request.data.tenantId);
+  const { tenantId, moduleKey, notes } = request.data;
+
+  const requestRef = db.collection('control_plane/v1/entitlement_requests').doc();
+  await requestRef.set({
+    id: requestRef.id,
+    tenantId,
+    moduleKey,
+    requestedByUid: actor.uid,
+    requestedByEmail: actor.email,
+    status: 'pending',
+    notes: notes || '',
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  await logAuditEvent(db, {
+    actorUid: actor.uid,
+    actorEmail: actor.email,
+    actorRole: actor.role,
+    tenantId,
+    action: 'MODULE_ENTITLEMENT_REQUESTED',
+    outcome: 'SUCCESS',
+    details: { tenantId, moduleKey, requestId: requestRef.id },
+  });
+
+  return { success: true, requestId: requestRef.id, moduleKey };
+});
+

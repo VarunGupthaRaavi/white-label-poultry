@@ -20,12 +20,12 @@ service cloud.firestore {
     function isClientAdmin(tenantId) {
       return isAuthenticated() && 
              request.auth.token.tenantId == tenantId && 
-             request.auth.token.role == 'client_admin';
+             (request.auth.token.role == 'client_admin' || isPlatformDeveloper());
     }
 
     function isTenantUser(tenantId) {
       return isAuthenticated() && 
-             request.auth.token.tenantId == tenantId;
+             (request.auth.token.tenantId == tenantId || isPlatformDeveloper());
     }
 
     function isOwner(userId) {
@@ -58,13 +58,20 @@ service cloud.firestore {
       // Branding: Publicly readable for dynamic runtime Flutter/Web theme loading
       match /branding/{tenantId} {
         allow read: if true;
-        allow write: if isPlatformDeveloper();
+        allow write: if isPlatformDeveloper() || isClientAdmin(tenantId);
       }
 
-      // Feature Entitlements: Readable by tenant users or developers
+      // Feature Entitlements: Readable by tenant users; ONLY Platform Developers can approve/mutate
       match /entitlements/{tenantId} {
         allow read: if isPlatformDeveloper() || isTenantUser(tenantId);
-        allow write: if isPlatformDeveloper();
+        allow write: if isPlatformDeveloper(); // Strictly no self-approval!
+      }
+
+      // Entitlement Requests submitted by Client Admins for Developer review
+      match /entitlement_requests/{requestId} {
+        allow read: if isPlatformDeveloper() || isTenantUser(resource.data.tenantId);
+        allow create: if isClientAdmin(request.resource.data.tenantId);
+        allow update, delete: if isPlatformDeveloper();
       }
 
       // Deployment Metadata & Infrastructure References
@@ -72,11 +79,11 @@ service cloud.firestore {
         allow read, write: if isPlatformDeveloper();
       }
 
-      // Audit Logs: Append-only by Platform Developers & Cloud Functions; IMMUTABLE
+      // Control Plane Audit Logs: Append-only; IMMUTABLE
       match /audit_logs/{logId} {
         allow read: if isPlatformDeveloper();
         allow create: if isPlatformDeveloper();
-        allow update, delete: if false; // Append-only audit integrity
+        allow update, delete: if false; // Strict audit integrity
       }
 
       // Platform Health & Aggregated Telemetry
@@ -91,13 +98,13 @@ service cloud.firestore {
     // =========================================================================
     match /tenants/{tenantId} {
 
-      // User Profiles
+      // User Profiles (Customers, Staff, Admins)
       match /users/{userId} {
         allow read: if isPlatformDeveloper() || isTenantUser(tenantId);
         allow create: if isAuthenticated() && 
                          request.auth.uid == userId && 
                          request.resource.data.role == 'customer';
-        // Prevents privilege escalation: users cannot change their role or tenantId
+        // Prevents privilege escalation: cannot self-grant admin roles or change tenantId
         allow update: if isPlatformDeveloper() || 
                          isClientAdmin(tenantId) || 
                          (isOwner(userId) && 
@@ -107,7 +114,7 @@ service cloud.firestore {
         allow delete: if isPlatformDeveloper() || isClientAdmin(tenantId);
       }
 
-      // Poultry Marketplace Products (Broilers, Layers, Chicks, Feed, Equipment)
+      // Poultry Marketplace Products (Live birds, dressed meat, eggs)
       match /products/{productId} {
         allow read: if resource.data.status == 'active' || 
                        isTenantUser(tenantId) || 
@@ -115,14 +122,19 @@ service cloud.firestore {
         allow create: if isPlatformDeveloper() || 
                          isClientAdmin(tenantId) || 
                          (isTenantUser(tenantId) && request.auth.token.role == 'seller');
-        allow update, delete: if isPlatformDeveloper() || 
-                                 isClientAdmin(tenantId) || 
-                                 (isTenantUser(tenantId) && 
-                                  request.auth.token.role == 'seller' && 
-                                  resource.data.sellerId == request.auth.uid);
+        // Sellers can only update price/stock for their OWN products, CANNOT self-approve status
+        allow update: if isPlatformDeveloper() || 
+                         isClientAdmin(tenantId) || 
+                         (isTenantUser(tenantId) && 
+                          request.auth.token.role == 'seller' && 
+                          resource.data.sellerId == request.auth.uid &&
+                          notUpdatingField('status') && // Seller cannot change status to active
+                          notUpdatingField('tenantId') &&
+                          notUpdatingField('sellerId'));
+        allow delete: if isPlatformDeveloper() || isClientAdmin(tenantId);
       }
 
-      // Poultry Batches & Inventory (Live bird weights, hatch dates, vaccination logs)
+      // Poultry Batches & Inventory
       match /inventory/{batchId} {
         allow read: if isTenantUser(tenantId) || isPlatformDeveloper();
         allow write: if isPlatformDeveloper() || 
@@ -130,7 +142,7 @@ service cloud.firestore {
                         (isTenantUser(tenantId) && request.auth.token.role == 'seller');
       }
 
-      // Customer Orders & Batch Fulfillment
+      // Customer Orders & Batch Fulfillment State Machine
       match /orders/{orderId} {
         allow read: if isPlatformDeveloper() || 
                        isClientAdmin(tenantId) || 
@@ -139,23 +151,77 @@ service cloud.firestore {
                          resource.data.sellerId == request.auth.uid
                        ));
         allow create: if isTenantUser(tenantId) && 
-                         request.resource.data.customerId == request.auth.uid;
+                         request.resource.data.customerId == request.auth.uid &&
+                         request.resource.data.orderStatus == 'pending';
+        
+        // Strict Order Update Boundary:
+        // 1. Client Admin can advance any valid transition
+        // 2. Sellers can ONLY advance permitted fulfillment transitions: 'preparing' or 'ready_for_dispatch'
+        //    and cannot alter items, paymentStatus, or totalAmount!
+        // 3. Customers can only request cancellation while pending
         allow update: if isPlatformDeveloper() || 
                          isClientAdmin(tenantId) || 
-                         (isTenantUser(tenantId) && (
-                           resource.data.sellerId == request.auth.uid ||
-                           resource.data.customerId == request.auth.uid
-                         ));
+                         (isTenantUser(tenantId) && 
+                          request.auth.token.role == 'seller' && 
+                          resource.data.sellerId == request.auth.uid &&
+                          (request.resource.data.orderStatus == 'preparing' || 
+                           request.resource.data.orderStatus == 'ready_for_dispatch') &&
+                          notUpdatingField('totalAmount') &&
+                          notUpdatingField('paymentStatus') &&
+                          notUpdatingField('items') &&
+                          notUpdatingField('sellerId') &&
+                          notUpdatingField('customerId')) ||
+                         (isTenantUser(tenantId) && 
+                          resource.data.customerId == request.auth.uid &&
+                          resource.data.orderStatus == 'pending' &&
+                          request.resource.data.orderStatus == 'cancelled' &&
+                          notUpdatingField('totalAmount') &&
+                          notUpdatingField('items'));
         allow delete: if isPlatformDeveloper();
       }
 
       // Seller / Farmer KYC Profiles
       match /sellers/{sellerId} {
         allow read: if isTenantUser(tenantId) || isPlatformDeveloper();
-        allow create, update: if isPlatformDeveloper() || 
-                                 isClientAdmin(tenantId) || 
-                                 (isTenantUser(tenantId) && request.auth.uid == sellerId);
+        allow create: if isTenantUser(tenantId) && 
+                         (isClientAdmin(tenantId) || request.auth.uid == sellerId);
+        // Sellers CANNOT approve themselves or edit commission rate!
+        allow update: if isPlatformDeveloper() || 
+                         isClientAdmin(tenantId) || 
+                         (isTenantUser(tenantId) && 
+                          request.auth.uid == sellerId &&
+                          notUpdatingField('status') && // Self-approval blocked
+                          notUpdatingField('commissionRatePercent') &&
+                          notUpdatingField('reviewedAt') &&
+                          notUpdatingField('reviewedBy') &&
+                          notUpdatingField('tenantId'));
         allow delete: if isPlatformDeveloper() || isClientAdmin(tenantId);
+      }
+
+      // Tenant-level Immutable Audit Trail Logs
+      match /audit_logs/{logId} {
+        allow read: if isClientAdmin(tenantId) || isPlatformDeveloper();
+        allow create: if isClientAdmin(tenantId) || isPlatformDeveloper();
+        allow update, delete: if false; // Strict audit immutability
+      }
+
+      // Coupons & Promotions (Requires module entitlement)
+      match /coupons/{couponId} {
+        allow read: if isTenantUser(tenantId);
+        allow write: if isClientAdmin(tenantId);
+      }
+
+      // Reviews & Moderation
+      match /reviews/{reviewId} {
+        allow read: if resource.data.status == 'published' || isClientAdmin(tenantId);
+        allow create: if isTenantUser(tenantId) && request.auth.uid == request.resource.data.customerId;
+        allow update, delete: if isClientAdmin(tenantId);
+      }
+
+      // Tenant Operational Settings
+      match /settings/operational {
+        allow read: if isTenantUser(tenantId);
+        allow write: if isClientAdmin(tenantId);
       }
     }
   }
