@@ -27,6 +27,7 @@ import {
   FileText,
   WalletCards,
   ShieldAlert,
+  CreditCard,
 } from 'lucide-react';
 
 export function Sidebar() {
@@ -47,6 +48,7 @@ export function Sidebar() {
     { href: '/', label: 'Overview & Analytics', icon: LayoutDashboard },
     { href: '/clients', label: 'Tenants & Clients', icon: Building2 },
     { href: '/clients/new', label: 'Onboard New Tenant', icon: UserPlus },
+    { href: '/payments', label: 'Payment Orchestrator', icon: CreditCard },
     { href: '/audit-logs', label: 'Control Plane Audit', icon: ScrollText },
     { href: '/health', label: 'Platform Operations', icon: HeartPulse },
   ];
@@ -54,6 +56,7 @@ export function Sidebar() {
   const adminLinks = [
     { href: '/admin', label: 'Overview Dashboard', icon: LayoutDashboard },
     { href: '/admin/orders', label: 'Order Management', icon: ShoppingBag },
+    { href: '/admin/payments', label: 'Payments & Settlements', icon: CreditCard },
     { href: '/admin/logistics', label: 'Logistics & Dispatch', icon: Truck },
     { href: '/admin/products', label: 'Products & Categories', icon: Tag },
     { href: '/admin/inventory', label: 'Inventory & Stock', icon: PackageOpen },
