@@ -1,9 +1,7 @@
 import './globals.css';
 import type { Metadata } from 'next';
 import { AuthProvider } from '../context/AuthContext';
-import { Navbar } from '../components/Navbar';
-import { Sidebar } from '../components/Sidebar';
-import { Gatekeeper } from '../components/Gatekeeper';
+import { Navbar, Sidebar, Gatekeeper } from '../components';
 
 export const metadata: Metadata = {
   title: 'White-Label Platform Control Plane | Developer Panel',
