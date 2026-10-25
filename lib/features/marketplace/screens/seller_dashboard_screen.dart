@@ -63,14 +63,25 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
                     children: [
                       Text(
                         authProvider.currentUser.displayName,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Colors.white,
+                        ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: branding.colors.primary.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: branding.colors.primary.withValues(alpha: 0.4)),
+                          border: Border.all(
+                            color: branding.colors.primary.withValues(
+                              alpha: 0.4,
+                            ),
+                          ),
                         ),
                         child: Text(
                           'Verified Producer',
@@ -86,7 +97,10 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
                   const SizedBox(height: 6),
                   Text(
                     'Active Tenant: ${branding.displayName} (${branding.tenantId})',
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF94A3B8),
+                    ),
                   ),
                 ],
               ),
@@ -105,68 +119,94 @@ class _SellerDashboardScreenState extends State<SellerDashboardScreen> {
                     children: [
                       Text(
                         'Active Poultry Lots & Batches (${_myBatches.length})',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: Colors.white,
+                        ),
                       ),
                       TextButton.icon(
                         onPressed: () {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: const Text('Add Batch Form: batch creation recorded in inventory plane.'),
+                              content: const Text(
+                                'Add Batch Form: batch creation recorded in inventory plane.',
+                              ),
                               backgroundColor: branding.colors.primary,
                             ),
                           );
                         },
                         icon: const Icon(Icons.add, size: 16),
-                        label: const Text('Add Lot', style: TextStyle(fontSize: 12)),
+                        label: const Text(
+                          'Add Lot',
+                          style: TextStyle(fontSize: 12),
+                        ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 8),
 
-                  ..._myBatches.map((b) => Card(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        child: Padding(
-                          padding: const EdgeInsets.all(14),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    b['title'],
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
+                  ..._myBatches.map(
+                    (b) => Card(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: Padding(
+                        padding: const EdgeInsets.all(14),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  b['title'],
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                    color: Colors.white,
                                   ),
-                                  Text(
-                                    '${b['count']} ${branding.terminology.itemUnit}s',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12,
-                                      color: branding.colors.primary,
-                                    ),
+                                ),
+                                Text(
+                                  '${b['count']} ${branding.terminology.itemUnit}s',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                    color: branding.colors.primary,
                                   ),
-                                ],
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Category: ${b['category']} • Status: ${b['status']}',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: Color(0xFF94A3B8),
                               ),
-                              const SizedBox(height: 6),
-                              Text(
-                                'Category: ${b['category']} • Status: ${b['status']}',
-                                style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
-                              ),
-                              const SizedBox(height: 4),
-                              Row(
-                                children: [
-                                  const Icon(Icons.verified, size: 14, color: Color(0xFF10B981)),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    b['vaccination'],
-                                    style: const TextStyle(fontSize: 11, color: Color(0xFF10B981), fontWeight: FontWeight.w600),
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.verified,
+                                  size: 14,
+                                  color: Color(0xFF10B981),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  b['vaccination'],
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: Color(0xFF10B981),
+                                    fontWeight: FontWeight.w600,
                                   ),
-                                ],
-                              ),
-                            ],
-                          ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
-                      )),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),

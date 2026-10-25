@@ -52,12 +52,18 @@ class _MockHttpClientResponse implements HttpClientResponse {
       HttpClientResponseCompressionState.notCompressed;
 
   @override
-  Stream<List<int>> asBroadcastStream({void Function(StreamSubscription<List<int>>)? onListen, void Function(StreamSubscription<List<int>>)? onCancel}) =>
-      Stream.value(_transparentPngBytes).asBroadcastStream();
+  Stream<List<int>> asBroadcastStream({
+    void Function(StreamSubscription<List<int>>)? onListen,
+    void Function(StreamSubscription<List<int>>)? onCancel,
+  }) => Stream.value(_transparentPngBytes).asBroadcastStream();
 
   @override
-  StreamSubscription<List<int>> listen(void Function(List<int> event)? onData,
-      {Function? onError, void Function()? onDone, bool? cancelOnError}) {
+  StreamSubscription<List<int>> listen(
+    void Function(List<int> event)? onData, {
+    Function? onError,
+    void Function()? onDone,
+    bool? cancelOnError,
+  }) {
     return Stream.value(_transparentPngBytes).listen(
       onData,
       onError: onError,
@@ -79,16 +85,18 @@ void main() {
     HttpOverrides.global = null;
   });
 
-  testWidgets('White-label poultry application smoke test', (WidgetTester tester) async {
+  testWidgets('White-label poultry application smoke test', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(const PoultryWhiteLabelApp());
     await tester.pumpAndSettle();
 
-    // Verify initial default tenant is "Apex Poultry Express"
-    expect(find.text('Apex Poultry Express'), findsOneWidget);
+    // Verify initial default tenant is "Kisan Poultry Hub & Market"
+    expect(find.text('Kisan Poultry Hub & Market'), findsWidgets);
 
     // Verify poultry categories appear
-    expect(find.text('Day-Old Chicks'), findsWidgets);
-    expect(find.text('Live Birds'), findsWidgets);
-    expect(find.text('Fresh Eggs'), findsWidgets);
+    expect(find.text('Broiler Chicken'), findsWidgets);
+    expect(find.text('Country Chicken'), findsWidgets);
+    expect(find.text('Eggs'), findsWidgets);
   });
 }

@@ -35,8 +35,10 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
     final branding = themeProvider.branding;
 
     final filteredProducts = PoultryProduct.sampleCatalog.where((p) {
-      final matchesCategory = _selectedCategory == 'All' || p.category == _selectedCategory;
-      final matchesSearch = p.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+      final matchesCategory =
+          _selectedCategory == 'All' || p.category == _selectedCategory;
+      final matchesSearch =
+          p.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           p.description.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           p.sellerName.toLowerCase().contains(_searchQuery.toLowerCase());
       return matchesCategory && matchesSearch;
@@ -71,13 +73,22 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8.0),
             child: ActionChip(
-              avatar: Icon(Icons.tune, size: 14, color: branding.colors.primary),
+              avatar: Icon(
+                Icons.tune,
+                size: 14,
+                color: branding.colors.primary,
+              ),
               label: Text(
                 authProvider.currentUser.roleLabel,
-                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               backgroundColor: const Color(0xFF1E293B),
-              side: BorderSide(color: branding.colors.primary.withValues(alpha: 0.5)),
+              side: BorderSide(
+                color: branding.colors.primary.withValues(alpha: 0.5),
+              ),
               onPressed: () {
                 showModalBottomSheet(
                   context: context,
@@ -103,9 +114,16 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
                   TextField(
                     onChanged: (val) => setState(() => _searchQuery = val),
                     decoration: InputDecoration(
-                      hintText: 'Search breed, flock batch, feed, or hatchery...',
-                      hintStyle: const TextStyle(color: Color(0xFF64748B), fontSize: 13),
-                      prefixIcon: const Icon(Icons.search, color: Color(0xFF64748B)),
+                      hintText:
+                          'Search breed, flock batch, feed, or hatchery...',
+                      hintStyle: const TextStyle(
+                        color: Color(0xFF64748B),
+                        fontSize: 13,
+                      ),
+                      prefixIcon: const Icon(
+                        Icons.search,
+                        color: Color(0xFF64748B),
+                      ),
                       filled: true,
                       fillColor: const Color(0xFF151E2E),
                       contentPadding: const EdgeInsets.symmetric(vertical: 12),
@@ -136,16 +154,23 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
                           child: FilterChip(
                             label: Text(cat),
                             selected: isSelected,
-                            onSelected: (_) => setState(() => _selectedCategory = cat),
+                            onSelected: (_) =>
+                                setState(() => _selectedCategory = cat),
                             selectedColor: branding.colors.primary,
                             backgroundColor: const Color(0xFF151E2E),
                             labelStyle: TextStyle(
-                              color: isSelected ? branding.colors.textOnPrimary : const Color(0xFF94A3B8),
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              color: isSelected
+                                  ? branding.colors.textOnPrimary
+                                  : const Color(0xFF94A3B8),
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
                               fontSize: 12,
                             ),
                             side: BorderSide(
-                              color: isSelected ? branding.colors.primary : const Color(0xFF1E293B),
+                              color: isSelected
+                                  ? branding.colors.primary
+                                  : const Color(0xFF1E293B),
                             ),
                           ),
                         );
@@ -160,7 +185,10 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
           // Entitlement-Guarded Promo Banner: Coupons & Volume Discounts
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 8.0,
+              ),
               child: EntitlementGuard(
                 moduleKey: 'coupons_and_promotions',
                 child: Container(
@@ -173,7 +201,9 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
                       ],
                     ),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: branding.colors.primary.withValues(alpha: 0.4)),
+                    border: Border.all(
+                      color: branding.colors.primary.withValues(alpha: 0.4),
+                    ),
                   ),
                   child: Row(
                     children: [
@@ -183,7 +213,11 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
                           color: branding.colors.primary,
                           borderRadius: BorderRadius.circular(14),
                         ),
-                        child: Icon(Icons.local_offer, color: branding.colors.textOnPrimary, size: 20),
+                        child: Icon(
+                          Icons.local_offer,
+                          color: branding.colors.textOnPrimary,
+                          size: 20,
+                        ),
                       ),
                       const SizedBox(width: 14),
                       Expanded(
@@ -192,11 +226,18 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
                           children: [
                             const Text(
                               'Hatchery Volume Incentive Active',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color: Colors.white,
+                              ),
                             ),
                             Text(
                               'Order 500+ ${branding.terminology.itemUnit}s & receive 10% off Starter Feed.',
-                              style: const TextStyle(fontSize: 11, color: Color(0xFFCBD5E1)),
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: Color(0xFFCBD5E1),
+                              ),
                             ),
                           ],
                         ),
@@ -211,7 +252,10 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
           // Entitlement-Guarded Recurring Subscriptions Banner
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 4.0,
+              ),
               child: EntitlementGuard(
                 moduleKey: 'recurring_subscriptions',
                 child: Container(
@@ -223,7 +267,11 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.repeat, color: Color(0xFF38BDF8), size: 20),
+                      const Icon(
+                        Icons.repeat,
+                        color: Color(0xFF38BDF8),
+                        size: 20,
+                      ),
                       const SizedBox(width: 12),
                       const Expanded(
                         child: Column(
@@ -231,18 +279,31 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
                           children: [
                             Text(
                               'Scheduled Farm Replenishment',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                                color: Colors.white,
+                              ),
                             ),
                             Text(
                               'Automate weekly egg trays or bi-weekly feed shipments.',
-                              style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Color(0xFF94A3B8),
+                              ),
                             ),
                           ],
                         ),
                       ),
                       TextButton(
                         onPressed: () {},
-                        child: const Text('Subscribe', style: TextStyle(fontSize: 11, color: Color(0xFF38BDF8))),
+                        child: const Text(
+                          'Subscribe',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFF38BDF8),
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -255,27 +316,41 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
           if (authProvider.isSeller || authProvider.isAdmin)
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 8.0,
+                ),
                 child: EntitlementGuard(
                   moduleKey: 'seller_management',
                   child: InkWell(
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const SellerDashboardScreen()),
+                        MaterialPageRoute(
+                          builder: (_) => const SellerDashboardScreen(),
+                        ),
                       );
                     },
                     borderRadius: BorderRadius.circular(16),
                     child: Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: branding.colors.secondary.withValues(alpha: 0.15),
+                        color: branding.colors.secondary.withValues(
+                          alpha: 0.15,
+                        ),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: branding.colors.secondary.withValues(alpha: 0.4)),
+                        border: Border.all(
+                          color: branding.colors.secondary.withValues(
+                            alpha: 0.4,
+                          ),
+                        ),
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.storefront, color: branding.colors.secondary),
+                          Icon(
+                            Icons.storefront,
+                            color: branding.colors.secondary,
+                          ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Column(
@@ -291,12 +366,19 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
                                 ),
                                 const Text(
                                   'Manage live bird batches, vaccination logs, and orders.',
-                                  style: TextStyle(fontSize: 11, color: Color(0xFFCBD5E1)),
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Color(0xFFCBD5E1),
+                                  ),
                                 ),
                               ],
                             ),
                           ),
-                          Icon(Icons.arrow_forward_ios, size: 14, color: branding.colors.secondary),
+                          Icon(
+                            Icons.arrow_forward_ios,
+                            size: 14,
+                            color: branding.colors.secondary,
+                          ),
                         ],
                       ),
                     ),
@@ -314,11 +396,19 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
                 children: [
                   Text(
                     'Available Poultry Batches (${filteredProducts.length})',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: Colors.white,
+                    ),
                   ),
                   Text(
                     'Unit: ${branding.terminology.itemUnit}',
-                    style: TextStyle(fontSize: 11, color: branding.colors.primary, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: branding.colors.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ],
               ),
@@ -335,13 +425,10 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
                 crossAxisSpacing: 16,
                 childAspectRatio: 0.65,
               ),
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final product = filteredProducts[index];
-                  return _buildProductCard(context, product, branding);
-                },
-                childCount: filteredProducts.length,
-              ),
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final product = filteredProducts[index];
+                return _buildProductCard(context, product, branding);
+              }, childCount: filteredProducts.length),
             ),
           ),
 
@@ -352,7 +439,10 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
               child: Center(
                 child: Text(
                   'White-Label Commerce Platform • Support: ${branding.supportEmail}',
-                  style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: Color(0xFF64748B),
+                  ),
                 ),
               ),
             ),
@@ -385,7 +475,11 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
                     errorBuilder: (_, _, _) => Container(
                       color: const Color(0xFF1E293B),
                       child: const Center(
-                        child: Icon(Icons.egg, color: Color(0xFF64748B), size: 36),
+                        child: Icon(
+                          Icons.egg,
+                          color: Color(0xFF64748B),
+                          size: 36,
+                        ),
                       ),
                     ),
                   ),
@@ -395,7 +489,10 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
                     top: 8,
                     right: 8,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: branding.colors.primary,
                         borderRadius: BorderRadius.circular(6),
@@ -425,7 +522,11 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
                       children: [
                         Text(
                           product.category,
-                          style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8), fontWeight: FontWeight.w600),
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: Color(0xFF94A3B8),
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                         const SizedBox(height: 2),
                         Text(
@@ -444,7 +545,10 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
                           '${branding.terminology.sellerLabel}: ${product.sellerName}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: Color(0xFF64748B),
+                          ),
                         ),
                       ],
                     ),
@@ -464,7 +568,10 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
                             ),
                             Text(
                               ' / ${product.unit}',
-                              style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8)),
+                              style: const TextStyle(
+                                fontSize: 10,
+                                color: Color(0xFF94A3B8),
+                              ),
                             ),
                           ],
                         ),
@@ -472,16 +579,25 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            onPressed: () => _showProductDetails(context, product, branding),
+                            onPressed: () =>
+                                _showProductDetails(context, product, branding),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: branding.colors.primary,
                               foregroundColor: branding.colors.textOnPrimary,
                               padding: const EdgeInsets.symmetric(vertical: 6),
                               minimumSize: Size.zero,
                               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
                             ),
-                            child: const Text('Reserve', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                            child: const Text(
+                              'Reserve',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ),
                       ],
@@ -522,7 +638,11 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
                   Expanded(
                     child: Text(
                       product.title,
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                   IconButton(
@@ -534,7 +654,11 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
               const SizedBox(height: 8),
               Text(
                 product.description,
-                style: const TextStyle(fontSize: 13, color: Color(0xFFCBD5E1), height: 1.4),
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Color(0xFFCBD5E1),
+                  height: 1.4,
+                ),
               ),
               const SizedBox(height: 16),
               Container(
@@ -546,11 +670,24 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
                 child: Column(
                   children: [
                     _detailRow('Origin Location', product.farmLocation),
-                    _detailRow(branding.terminology.sellerLabel, product.sellerName),
-                    _detailRow('Available Stock', '${product.stockAvailable} ${product.unit}s'),
-                    _detailRow('Minimum Order', '${product.minOrderQuantity} ${product.unit}s'),
+                    _detailRow(
+                      branding.terminology.sellerLabel,
+                      product.sellerName,
+                    ),
+                    _detailRow(
+                      'Available Stock',
+                      '${product.stockAvailable} ${product.unit}s',
+                    ),
+                    _detailRow(
+                      'Minimum Order',
+                      '${product.minOrderQuantity} ${product.unit}s',
+                    ),
                     if (product.vaccinationDetails != null)
-                      _detailRow('Vaccination Certification', product.vaccinationDetails!, isHighlight: true),
+                      _detailRow(
+                        'Vaccination Certification',
+                        product.vaccinationDetails!,
+                        isHighlight: true,
+                      ),
                   ],
                 ),
               ),
@@ -562,12 +699,16 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Batch reserved in ${branding.displayName} checkout!'),
+                        content: Text(
+                          'Batch reserved in ${branding.displayName} checkout!',
+                        ),
                         backgroundColor: branding.colors.primary,
                       ),
                     );
                   },
-                  child: Text('Add to Batch Order (${branding.defaultCurrency} ${product.pricePerUnit.toStringAsFixed(2)})'),
+                  child: Text(
+                    'Add to Batch Order (${branding.defaultCurrency} ${product.pricePerUnit.toStringAsFixed(2)})',
+                  ),
                 ),
               ),
             ],
@@ -583,7 +724,10 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+          ),
           Text(
             value,
             style: TextStyle(

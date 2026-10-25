@@ -23,7 +23,9 @@ void main() {
       expect(entitlements.isEnabled('non_existent_key'), isFalse);
     });
 
-    testWidgets('EntitlementGuard renders child when module is enabled', (tester) async {
+    testWidgets('EntitlementGuard renders child when module is enabled', (
+      tester,
+    ) async {
       const entitlements = TenantEntitlements(
         tenantId: 'test',
         version: 1,
@@ -47,7 +49,9 @@ void main() {
       expect(find.text('Delivery Features Active'), findsOneWidget);
     });
 
-    testWidgets('EntitlementGuard hides child when module is disabled', (tester) async {
+    testWidgets('EntitlementGuard hides child when module is disabled', (
+      tester,
+    ) async {
       const entitlements = TenantEntitlements(
         tenantId: 'test',
         version: 1,

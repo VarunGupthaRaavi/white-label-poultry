@@ -66,31 +66,42 @@ class TenantSwitcherSheet extends StatelessWidget {
                       : const Color(0xFF1E293B),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: isSelected ? t.colors.primary : const Color(0xFF334155),
+                    color: isSelected
+                        ? t.colors.primary
+                        : const Color(0xFF334155),
                     width: isSelected ? 1.5 : 1.0,
                   ),
                 ),
-                child: ListTile(
-                  title: Text(
-                    t.displayName,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                      color: isSelected ? t.colors.primary : Colors.white,
+                child: Material(
+                  color: Colors.transparent,
+                  child: ListTile(
+                    title: Text(
+                      t.displayName,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: isSelected ? t.colors.primary : Colors.white,
+                      ),
                     ),
+                    subtitle: Text(
+                      'Unit: ${t.terminology.itemUnit} • Currency: ${t.defaultCurrency} • Seller: ${t.terminology.sellerLabel}',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF94A3B8),
+                      ),
+                    ),
+                    trailing: isSelected
+                        ? Icon(Icons.check_circle, color: t.colors.primary)
+                        : const Icon(
+                            Icons.chevron_right,
+                            color: Color(0xFF64748B),
+                          ),
+                    onTap: () {
+                      themeProvider.switchTenant(t.tenantId);
+                      authProvider.updateTenant(t.tenantId);
+                      Navigator.pop(context);
+                    },
                   ),
-                  subtitle: Text(
-                    'Unit: ${t.terminology.itemUnit} • Currency: ${t.defaultCurrency} • Seller: ${t.terminology.sellerLabel}',
-                    style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
-                  ),
-                  trailing: isSelected
-                      ? Icon(Icons.check_circle, color: t.colors.primary)
-                      : const Icon(Icons.chevron_right, color: Color(0xFF64748B)),
-                  onTap: () {
-                    themeProvider.switchTenant(t.tenantId);
-                    authProvider.updateTenant(t.tenantId);
-                    Navigator.pop(context);
-                  },
                 ),
               );
             }),

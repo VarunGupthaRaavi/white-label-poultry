@@ -95,7 +95,9 @@ class TenantBranding {
       displayName: map['displayName'] ?? 'Poultry Hub',
       logoUrl: map['logoUrl'] ?? '',
       iconUrl: map['iconUrl'],
-      colors: TenantColors.fromMap(Map<String, dynamic>.from(map['colors'] ?? {})),
+      colors: TenantColors.fromMap(
+        Map<String, dynamic>.from(map['colors'] ?? {}),
+      ),
       fontFamily: map['typography']?['fontFamily'] ?? 'Inter',
       terminology: TenantTerminology.fromMap(
         Map<String, dynamic>.from(map['terminology'] ?? {}),

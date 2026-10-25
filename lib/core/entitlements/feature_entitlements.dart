@@ -1,12 +1,6 @@
 import 'package:flutter/material.dart';
 
-enum EntitlementState {
-  enabled,
-  disabled,
-  requested,
-  approved,
-  suspended,
-}
+enum EntitlementState { enabled, disabled, requested, approved, suspended }
 
 class TenantEntitlements {
   final String tenantId;
@@ -23,7 +17,10 @@ class TenantEntitlements {
     return modules[moduleKey] == EntitlementState.enabled;
   }
 
-  factory TenantEntitlements.fromMap(String tenantId, Map<String, dynamic> map) {
+  factory TenantEntitlements.fromMap(
+    String tenantId,
+    Map<String, dynamic> map,
+  ) {
     final rawModules = Map<String, dynamic>.from(map['modules'] ?? {});
     final parsed = <String, EntitlementState>{};
 
@@ -122,13 +119,10 @@ class EntitlementsScope extends InheritedWidget {
   });
 
   static TenantEntitlements of(BuildContext context) {
-    final scope = context.dependOnInheritedWidgetOfExactType<EntitlementsScope>();
+    final scope = context
+        .dependOnInheritedWidgetOfExactType<EntitlementsScope>();
     return scope?.entitlements ??
-        const TenantEntitlements(
-          tenantId: 'fallback',
-          version: 1,
-          modules: {},
-        );
+        const TenantEntitlements(tenantId: 'fallback', version: 1, modules: {});
   }
 
   @override
