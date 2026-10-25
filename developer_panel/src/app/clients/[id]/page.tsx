@@ -48,7 +48,7 @@ export default function TenantDetailPage() {
   // Modal state
   const [nextState, setNextState] = useState<TenantLifecycleState | null>(null);
 
-  const loadData = async () => {
+  const loadData = React.useCallback(async () => {
     try {
       setIsLoading(true);
       const [t, b, e, d] = await Promise.all([
@@ -64,11 +64,11 @@ export default function TenantDetailPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [tenantId]);
 
   useEffect(() => {
     loadData();
-  }, [tenantId]);
+  }, [loadData]);
 
   if (isLoading) {
     return (
@@ -83,7 +83,7 @@ export default function TenantDetailPage() {
       <div className="p-8 bg-slate-900 border border-slate-800 rounded-3xl text-center max-w-md mx-auto space-y-4">
         <h3 className="text-lg font-bold text-slate-100">Tenant Not Found</h3>
         <p className="text-xs text-slate-400">
-          No tenant was found matching identifier "{tenantId}".
+          No tenant was found matching identifier &quot;{tenantId}&quot;.
         </p>
         <Link
           href="/clients"

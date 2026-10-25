@@ -420,6 +420,7 @@ export function BrandingEditor({ initialBranding, onSave }: Props) {
                   {/* Sample Poultry Product Card */}
                   <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
                     <div className="h-28 rounded-lg overflow-hidden relative bg-slate-800">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src="https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?w=500&auto=format&fit=crop&q=80"
                         alt="Poultry batch"
