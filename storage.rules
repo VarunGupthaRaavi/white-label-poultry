@@ -1,0 +1,38 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isPlatformDeveloper() {
+      return isAuthenticated() && (
+        request.auth.token.role == 'developer' ||
+        request.auth.token.role == 'super_admin'
+      );
+    }
+
+    function isTenantUser(tenantId) {
+      return isAuthenticated() && request.auth.token.tenantId == tenantId;
+    }
+
+    // Platform Branding Assets: Public read, Platform Developer write
+    match /control_plane/branding/{tenantId}/{fileName} {
+      allow read: if true;
+      allow write: if isPlatformDeveloper() && 
+                      request.resource.size < 5 * 1024 * 1024 &&
+                      request.resource.contentType.matches('image/.*');
+    }
+
+    // Tenant Media Plane (Poultry photos, veterinary certificates, batch logs)
+    match /tenants/{tenantId}/{allPaths=**} {
+      allow read: if true; // Public access for product imagery
+      allow write: if isPlatformDeveloper() || 
+                      (isTenantUser(tenantId) && 
+                       request.resource.size < 10 * 1024 * 1024 &&
+                       (request.resource.contentType.matches('image/.*') || 
+                        request.resource.contentType == 'application/pdf'));
+    }
+  }
+}

@@ -1,0 +1,162 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // =========================================================================
+    // HELPER FUNCTIONS & AUTHENTICATION PREDICATES
+    // =========================================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isPlatformDeveloper() {
+      return isAuthenticated() && (
+        request.auth.token.role == 'developer' ||
+        request.auth.token.role == 'super_admin'
+      );
+    }
+
+    function isClientAdmin(tenantId) {
+      return isAuthenticated() && 
+             request.auth.token.tenantId == tenantId && 
+             request.auth.token.role == 'client_admin';
+    }
+
+    function isTenantUser(tenantId) {
+      return isAuthenticated() && 
+             request.auth.token.tenantId == tenantId;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Prevents privilege escalation: cannot alter immutable fields
+    function notUpdatingField(fieldName) {
+      return !(fieldName in request.resource.data) || 
+             request.resource.data[fieldName] == resource.data[fieldName];
+    }
+
+    // =========================================================================
+    // CONTROL PLANE RULES (Platform Infrastructure)
+    // =========================================================================
+    match /control_plane/{version} {
+
+      // Platform Developers registry
+      match /platform_admins/{adminUid} {
+        allow read: if isPlatformDeveloper() || isOwner(adminUid);
+        allow write: if isPlatformDeveloper();
+      }
+
+      // Tenant Registry: Only Platform Developers can mutate tenants
+      match /tenants/{tenantId} {
+        allow read: if isPlatformDeveloper() || isTenantUser(tenantId);
+        allow write: if isPlatformDeveloper();
+      }
+
+      // Branding: Publicly readable for dynamic runtime Flutter/Web theme loading
+      match /branding/{tenantId} {
+        allow read: if true;
+        allow write: if isPlatformDeveloper();
+      }
+
+      // Feature Entitlements: Readable by tenant users or developers
+      match /entitlements/{tenantId} {
+        allow read: if isPlatformDeveloper() || isTenantUser(tenantId);
+        allow write: if isPlatformDeveloper();
+      }
+
+      // Deployment Metadata & Infrastructure References
+      match /deployments/{tenantId} {
+        allow read, write: if isPlatformDeveloper();
+      }
+
+      // Audit Logs: Append-only by Platform Developers & Cloud Functions; IMMUTABLE
+      match /audit_logs/{logId} {
+        allow read: if isPlatformDeveloper();
+        allow create: if isPlatformDeveloper();
+        allow update, delete: if false; // Append-only audit integrity
+      }
+
+      // Platform Health & Aggregated Telemetry
+      match /platform_metrics/{metricId} {
+        allow read: if isPlatformDeveloper();
+        allow write: if isPlatformDeveloper();
+      }
+    }
+
+    // =========================================================================
+    // TENANT DATA PLANE RULES (Shared Multi-Tenant Mode & Data Scopes)
+    // =========================================================================
+    match /tenants/{tenantId} {
+
+      // User Profiles
+      match /users/{userId} {
+        allow read: if isPlatformDeveloper() || isTenantUser(tenantId);
+        allow create: if isAuthenticated() && 
+                         request.auth.uid == userId && 
+                         request.resource.data.role == 'customer';
+        // Prevents privilege escalation: users cannot change their role or tenantId
+        allow update: if isPlatformDeveloper() || 
+                         isClientAdmin(tenantId) || 
+                         (isOwner(userId) && 
+                          notUpdatingField('role') && 
+                          notUpdatingField('tenantId') &&
+                          notUpdatingField('status'));
+        allow delete: if isPlatformDeveloper() || isClientAdmin(tenantId);
+      }
+
+      // Poultry Marketplace Products (Broilers, Layers, Chicks, Feed, Equipment)
+      match /products/{productId} {
+        allow read: if resource.data.status == 'active' || 
+                       isTenantUser(tenantId) || 
+                       isPlatformDeveloper();
+        allow create: if isPlatformDeveloper() || 
+                         isClientAdmin(tenantId) || 
+                         (isTenantUser(tenantId) && request.auth.token.role == 'seller');
+        allow update, delete: if isPlatformDeveloper() || 
+                                 isClientAdmin(tenantId) || 
+                                 (isTenantUser(tenantId) && 
+                                  request.auth.token.role == 'seller' && 
+                                  resource.data.sellerId == request.auth.uid);
+      }
+
+      // Poultry Batches & Inventory (Live bird weights, hatch dates, vaccination logs)
+      match /inventory/{batchId} {
+        allow read: if isTenantUser(tenantId) || isPlatformDeveloper();
+        allow write: if isPlatformDeveloper() || 
+                        isClientAdmin(tenantId) || 
+                        (isTenantUser(tenantId) && request.auth.token.role == 'seller');
+      }
+
+      // Customer Orders & Batch Fulfillment
+      match /orders/{orderId} {
+        allow read: if isPlatformDeveloper() || 
+                       isClientAdmin(tenantId) || 
+                       (isTenantUser(tenantId) && (
+                         resource.data.customerId == request.auth.uid ||
+                         resource.data.sellerId == request.auth.uid
+                       ));
+        allow create: if isTenantUser(tenantId) && 
+                         request.resource.data.customerId == request.auth.uid;
+        allow update: if isPlatformDeveloper() || 
+                         isClientAdmin(tenantId) || 
+                         (isTenantUser(tenantId) && (
+                           resource.data.sellerId == request.auth.uid ||
+                           resource.data.customerId == request.auth.uid
+                         ));
+        allow delete: if isPlatformDeveloper();
+      }
+
+      // Seller / Farmer KYC Profiles
+      match /sellers/{sellerId} {
+        allow read: if isTenantUser(tenantId) || isPlatformDeveloper();
+        allow create, update: if isPlatformDeveloper() || 
+                                 isClientAdmin(tenantId) || 
+                                 (isTenantUser(tenantId) && request.auth.uid == sellerId);
+        allow delete: if isPlatformDeveloper() || isClientAdmin(tenantId);
+      }
+    }
+  }
+}
